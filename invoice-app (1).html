@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pest Discover Siem Reap — Invoice Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --green-50:#EAF3DE; --green-100:#C0DD97; --green-200:#97C459; --green-400:#639922;
+    --green-600:#3B6D11; --green-800:#27500A; --green-900:#173404;
+    --ink:#1c2016; --paper:#ffffff; --line:#dfe3d6; --muted:#6b7263;
+    --bg:#f4f6ef;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;}
+  .khmer{font-family:'Noto Sans Khmer','Inter',sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 20px 64px;}
+  .topbar{display:flex;align-items:center;gap:14px;margin-bottom:6px;}
+  .bug{width:36px;height:36px;flex:none;}
+  .topbar h1{font-size:20px;font-weight:600;margin:0;}
+  .topbar p{margin:2px 0 0;color:var(--muted);font-size:13px;}
+  .layout{display:grid;grid-template-columns:380px 1fr;gap:24px;margin-top:28px;align-items:start;}
+  @media (max-width:900px){
+    .layout{grid-template-columns:1fr;}
+    .wrap{padding:20px 14px 96px;}
+    input,textarea{font-size:16px;padding:11px 12px;}
+    .btn{padding:14px;font-size:15px;min-height:46px;}
+    #telegramActions{display:none;}
+    .mobile-actionbar{
+      display:flex;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:50;
+      background:#fff;border-top:1px solid var(--line);padding:10px 14px;
+      padding-bottom:calc(10px + env(safe-area-inset-bottom));box-shadow:0 -4px 14px rgba(0,0,0,.06);
+    }
+    .mobile-actionbar .btn{margin-top:0;flex:1;}
+  }
+  @media (min-width:901px){ .mobile-actionbar{display:none;} }
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px 20px 22px;}
+  .card + .card{margin-top:16px;}
+  .card h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--green-800);margin:0 0 14px;}
+  label{display:block;font-size:12.5px;color:var(--muted);margin:12px 0 4px;}
+  label:first-child{margin-top:0;}
+  input,textarea{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;
+    font-family:inherit;font-size:13.5px;color:var(--ink);background:#fbfcf9;
+  }
+  input:focus,textarea:focus{outline:2px solid var(--green-200);border-color:var(--green-400);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.5;}
+  .btn{
+    width:100%;padding:11px 14px;border-radius:9px;border:1px solid var(--green-400);
+    background:var(--green-600);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:14px;
+  }
+  .btn:hover{background:var(--green-800);}
+  .btn.secondary{background:#fff;color:var(--green-800);border:1px solid var(--line);}
+  .btn.secondary:hover{background:var(--green-50);}
+  .btn:disabled{opacity:.55;cursor:not-allowed;}
+  .status{font-size:12.5px;margin-top:10px;padding:8px 10px;border-radius:8px;display:none;}
+  .status.ok{display:block;background:var(--green-50);color:var(--green-800);}
+  .status.err{display:block;background:#fbe7e4;color:#8a2c1f;}
+  .counter-box{display:flex;align-items:center;justify-content:space-between;background:var(--green-50);
+    border-radius:9px;padding:10px 12px;margin-top:4px;gap:8px;}
+  .counter-box .num{font-size:20px;font-weight:700;color:var(--green-800);font-variant-numeric:tabular-nums;flex:1;text-align:center;}
+  .counter-box .num-edit{flex:1;text-align:center;font-size:20px;font-weight:700;color:var(--green-800);
+    font-variant-numeric:tabular-nums;padding:6px 4px;border:1px solid var(--green-400);border-radius:6px;background:#fff;}
+  .counter-box .stepbtn{background:#fff;border:1px solid var(--green-200);color:var(--green-800);
+    width:34px;height:34px;border-radius:8px;font-size:18px;line-height:1;cursor:pointer;flex:none;}
+  .counter-box .stepbtn:hover{background:var(--green-100);}
+  .counter-box button#editCounterBtn{background:none;border:none;color:var(--green-600);font-size:12px;cursor:pointer;text-decoration:underline;flex:none;}
+
+  .sheet-outer{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px;}
+  #invoice{background:#fff;padding:36px 40px;font-family:'Inter',sans-serif;color:#111;}
+  .inv-head{display:flex;align-items:center;gap:18px;border-bottom:3px solid var(--green-600);padding-bottom:16px;}
+  .inv-head .bug{width:60px;height:60px;}
+  .inv-head .co-en{font-size:11px;letter-spacing:.06em;color:var(--green-800);font-weight:600;margin-top:2px;}
+  .inv-title{margin-left:auto;text-align:right;}
+  .inv-title .kh{font-size:22px;font-weight:700;}
+  .inv-title .en{font-size:15px;font-weight:600;color:var(--green-800);}
+  .info-box{border:1px solid #d8dccf;border-radius:8px;padding:12px 14px;margin-top:16px;font-size:12.5px;line-height:1.65;}
+  .vattin{display:inline-flex;border:1px solid #333;border-radius:4px;overflow:hidden;margin-left:6px;vertical-align:middle;}
+  .vattin span{display:inline-block;width:18px;text-align:center;font-size:11px;padding:2px 0;border-right:1px solid #ccc;}
+  .vattin span:last-child{border-right:none;}
+  .doc-title{text-align:center;margin:22px 0 14px;}
+  .doc-title .kh{font-size:17px;font-weight:700;}
+  .doc-title .en{font-size:12px;letter-spacing:.08em;color:var(--muted);}
+  .meta-row{display:flex;justify-content:space-between;font-size:12.5px;margin:4px 0;}
+  table.items{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px;}
+  table.items th{background:var(--green-800);color:#fff;padding:10px 8px;font-weight:600;text-align:center;font-size:12px;}
+  table.items th .en{display:block;font-size:10.5px;font-weight:400;opacity:.85;}
+  table.items td{border:1px solid #d8dccf;padding:12px 10px;vertical-align:top;}
+  table.items td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .totals td{font-weight:600;}
+  .totals td:first-child{text-align:right;}
+  .grand td{background:var(--green-50);color:var(--green-900);}
+  .sign{display:flex;justify-content:space-between;margin-top:56px;text-align:center;font-size:12px;}
+  .sign div{width:44%;border-top:1px solid #999;padding-top:8px;}
+  .sign .kh{font-size:13px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <svg class="bug" viewBox="0 0 48 48"><ellipse cx="24" cy="26" rx="15" ry="17" fill="var(--green-600)"/><circle cx="24" cy="12" r="6" fill="var(--green-800)"/><circle cx="17" cy="21" r="2.4" fill="#fff"/><circle cx="31" cy="21" r="2.4" fill="#fff"/><circle cx="15" cy="30" r="2.4" fill="#fff"/><circle cx="33" cy="30" r="2.4" fill="#fff"/><circle cx="24" cy="35" r="2.4" fill="#fff"/><line x1="24" y1="9" x2="24" y2="26" stroke="#fff" stroke-width="1.5"/></svg>
+    <div>
+      <h1>Pest Discover Siem Reap — invoice generator</h1>
+      <p>Auto-dated for Cambodia time, auto-numbered, sent straight to Telegram.</p>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="card">
+        <h2>Invoice number</h2>
+        <div class="counter-box" id="counterBox">
+          <button type="button" class="stepbtn" id="counterMinus" aria-label="Decrease">−</button>
+          <span class="num" id="counterDisplay">000094</span>
+          <input type="text" inputmode="numeric" class="num-edit" id="counterInput" style="display:none;">
+          <button type="button" class="stepbtn" id="counterPlus" aria-label="Increase">+</button>
+          <button type="button" id="editCounterBtn">edit</button>
+        </div>
+        <div class="hint" id="counterHint">Moves up by one automatically each new day (Cambodia time). Last issued: —</div>
+      </div>
+
+      <div class="card">
+        <h2>Customer</h2>
+        <label>Company name</label>
+        <input id="custCompany" value="CHANREY TREE CO., LTD.">
+        <label>Khmer name (optional)</label>
+        <input id="custKhmer" class="khmer" value="ចាន់រី ធ្រី ខូ អិលធីឌី">
+        <label>VATTIN (digits only)</label>
+        <input id="custVattin" value="B116-9016385267">
+        <label>Address</label>
+        <textarea id="custAddress" rows="2">Road Phum Mondul 1, Svay Dankum, Siem Reap District, Siem Reap Province.</textarea>
+        <label>Customer reference no.</label>
+        <input id="custRef" value="000099">
+      </div>
+
+      <div class="card">
+        <h2>Service line</h2>
+        <label>Description (auto-fills to last month, editable)</label>
+        <input id="svcDesc" value="">
+        <div class="row2">
+          <div>
+            <label>Unit price (USD)</label>
+            <input id="unitPrice" type="number" step="0.01" value="110">
+          </div>
+          <div>
+            <label>VAT %</label>
+            <input id="vatPct" type="number" step="0.1" value="10">
+          </div>
+        </div>
+        <label>USD → KHR rate</label>
+        <input id="fxRate" type="number" step="1" value="4100">
+      </div>
+
+      <div class="card">
+        <h2>Telegram delivery</h2>
+        <div class="hint">Bot token and chat ID are set directly in the code (see the <code>TELEGRAM_BOT_TOKEN</code> / <code>TELEGRAM_CHAT_ID</code> constants near the top of the script). Clicking "Send" below renders the invoice as a PDF and delivers it to Telegram automatically — no extra steps.</div>
+        <div id="telegramActions">
+          <button class="btn" id="sendBtn">Send invoice to Telegram (PDF)</button>
+          <button class="btn secondary" id="downloadBtn" style="margin-top:8px;">Download as image</button>
+        </div>
+        <div class="status" id="statusBox"></div>
+      </div>
+    </div>
+
+    <div class="sheet-outer">
+      <div id="invoice">
+        <div class="inv-head">
+          <svg class="bug" viewBox="0 0 48 48"><ellipse cx="24" cy="26" rx="15" ry="17" fill="#3B6D11"/><circle cx="24" cy="12" r="6" fill="#27500A"/><circle cx="17" cy="21" r="2.4" fill="#fff"/><circle cx="31" cy="21" r="2.4" fill="#fff"/><circle cx="15" cy="30" r="2.4" fill="#fff"/><circle cx="33" cy="30" r="2.4" fill="#fff"/><circle cx="24" cy="35" r="2.4" fill="#fff"/><line x1="24" y1="9" x2="24" y2="26" stroke="#fff" stroke-width="1.5"/></svg>
+          <div>
+            <div class="khmer" style="font-size:15px;font-weight:700;">ប៉េស្ត ឌីសខាវើ សៀមរាប</div>
+            <div class="co-en">PEST DISCOVER SIEM REAP</div>
+          </div>
+          <div class="inv-title">
+            <div class="kh khmer">វិក្កយបត្រពន្ធអាករ</div>
+            <div class="en">TAX INVOICE</div>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <div class="khmer"><b>លេខអត្តសញ្ញាណកម្ម អតប (VATTIN):</b>
+            <span class="vattin" id="sellerVattinBox"></span>
+          </div>
+          <div class="khmer" style="margin-top:6px;">អាសយដ្ឋាន៖ ផ្ទះលេខ ០៧៩ ភូមិវត្តបូ សង្កាត់សាលាកំពែក ក្រុងសៀមរាប ខេត្តសៀមរាប</div>
+          <div>Address: #079, Phum Watbo, Sangkat Salakamrouek, Siem Reap City, Siem Reap Province</div>
+          <div style="margin-top:6px;">Tel: 096 731 4581 &nbsp;&nbsp; Email: pestdiscoversiemreap@gmail.com</div>
+        </div>
+
+        <div class="doc-title">
+          <div class="kh khmer">ថ្លៃវិក្កយបត្រ</div>
+        </div>
+
+        <div class="info-box">
+          <div class="meta-row"><span class="khmer">អតិថិជន / Customer:</span><span>Invoice no.: <b id="invNoOut">000094</b></span></div>
+          <div class="meta-row"><span>Company: <b id="custCompanyOut"></b></span><span>Date: <b id="dateOut"></b></span></div>
+          <div class="khmer" id="custKhmerOut" style="margin-top:4px;"></div>
+          <div id="custAddressOut" style="margin-top:2px;"></div>
+          <div class="khmer" style="margin-top:6px;"><b>លេខអត្តសញ្ញាណកម្ម អតប (VATTIN):</b>
+            <span class="vattin" id="custVattinBox"></span>
+          </div>
+        </div>
+
+        <table class="items">
+          <thead>
+            <tr>
+              <th><span class="khmer">បរិយាយ</span><span class="en">Description</span></th>
+              <th><span class="khmer">ថ្លៃឯកតា</span><span class="en">Unit price</span></th>
+              <th><span class="khmer">ថ្លៃទឹកប្រាក់</span><span class="en">Amount</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td id="descOut"></td><td class="num" id="unitOut"></td><td class="num" id="amountOut"></td></tr>
+            <tr class="totals"><td colspan="2" class="khmer">សរុប (Sub total)</td><td class="num" id="subOut"></td></tr>
+            <tr class="totals"><td colspan="2" class="khmer" id="vatLabelOut">អាករលើតម្លៃបន្ថែម (VAT)</td><td class="num" id="vatOut"></td></tr>
+            <tr class="totals grand"><td colspan="2" class="khmer">សរុបទាំងអស់ (Grand total) USD</td><td class="num" id="grandUsdOut"></td></tr>
+            <tr class="totals grand"><td colspan="2" class="khmer">សរុបទាំងអស់ (Grand total) KHR</td><td class="num" id="grandKhrOut"></td></tr>
+          </tbody>
+        </table>
+
+        <div class="sign">
+          <div><div class="kh khmer">ហត្ថលេខា</div><div>Seller's signature and name</div></div>
+          <div><div class="kh khmer">ហត្ថលេខា</div><div>Customer's signature and name</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-actionbar">
+  <button class="btn" id="mobileSendBtn" style="margin-top:0;">Send PDF</button>
+  <button class="btn secondary" id="mobileDownloadBtn" style="margin-top:0;">Download img</button>
+</div>
+
+<script>
+// ── Telegram delivery settings ──────────────────────────────────────────
+// Put your own bot token and chat ID / channel here. This is the ONLY place
+// you need to edit for Telegram delivery — there is no on-page input for it.
+// Get a token from @BotFather on Telegram, and add the bot as admin to your
+// channel (or start a chat with it for a personal chat_id).
+const TELEGRAM_BOT_TOKEN = "PUT_YOUR_BOT_TOKEN_HERE";      // e.g. "123456789:AAExampleTokenText"
+const TELEGRAM_CHAT_ID   = "PUT_YOUR_CHAT_ID_OR_@CHANNEL"; // e.g. "@pestdiscoverchannel" or "-100123456789"
+
+const SELLER_VATTIN = "B1169018 0554".replace("B","B ");
+const sellerDigits = ["B","1","1","6","-","9","0","1","8","0","5","5","4"];
+function fillVattinBox(el, digits){
+  el.innerHTML = digits.map(d => `<span>${d}</span>`).join("");
+}
+fillVattinBox(document.getElementById('sellerVattinBox'), sellerDigits);
+
+function cambodiaNow(){
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone:'Asia/Phnom_Penh', year:'numeric', month:'numeric', day:'numeric',
+    hour:'numeric', minute:'numeric', second:'numeric', hour12:false
+  }).formatToParts(new Date());
+  const get = t => parseInt(parts.find(p=>p.type===t).value,10);
+  return new Date(get('year'), get('month')-1, get('day'), get('hour'), get('minute'), get('second'));
+}
+function pad2(n){ return String(n).padStart(2,'0'); }
+function todayKey(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function fmtDateDMY(d){ return `${pad2(d.getDate())}-${pad2(d.getMonth()+1)}-${d.getFullYear()}`; }
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function prevMonthYear(d){
+  let m = d.getMonth()-1, y = d.getFullYear();
+  if(m<0){ m=11; y-=1; }
+  return { name: MONTHS[m], year: y };
+}
+
+let state = { number: 94, lastDate: null };
+
+async function loadCounter(){
+  try{
+    const r = await window.storage.get('invoice-counter', false);
+    if(r && r.value){ state = JSON.parse(r.value); }
+  }catch(e){}
+  const now = cambodiaNow();
+  const key = todayKey(now);
+  if(state.lastDate === null){
+    state = { number: 94, lastDate: key };
+    await saveCounter();
+  } else if(state.lastDate !== key){
+    state.number += 1;
+    state.lastDate = key;
+    await saveCounter();
+  }
+  render();
+}
+async function saveCounter(){
+  try{ await window.storage.set('invoice-counter', JSON.stringify(state), false); }catch(e){}
+}
+
+async function commitCounterNumber(n){
+  if(!isNaN(n) && n >= 0){
+    state.number = n;
+    state.lastDate = todayKey(cambodiaNow());
+    await saveCounter();
+    render();
+  }
+}
+
+document.getElementById('editCounterBtn').addEventListener('click', () => {
+  const display = document.getElementById('counterDisplay');
+  const input = document.getElementById('counterInput');
+  const editBtn = document.getElementById('editCounterBtn');
+  if(input.style.display === 'none'){
+    input.value = state.number;
+    display.style.display = 'none';
+    input.style.display = 'inline-block';
+    input.focus();
+    input.select();
+    editBtn.textContent = 'save';
+  } else {
+    const n = parseInt(input.value.replace(/\D/g,''),10);
+    commitCounterNumber(n);
+    input.style.display = 'none';
+    display.style.display = 'block';
+    editBtn.textContent = 'edit';
+  }
+});
+document.getElementById('counterInput').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') document.getElementById('editCounterBtn').click();
+});
+document.getElementById('counterMinus').addEventListener('click', () => commitCounterNumber(Math.max(0, state.number - 1)));
+document.getElementById('counterPlus').addEventListener('click', () => commitCounterNumber(state.number + 1));
+
+async function loadSettings(){
+  try{
+    const r = await window.storage.get('invoice-app-settings', false);
+    if(r && r.value){
+      const s = JSON.parse(r.value);
+      if(s.fxRate) document.getElementById('fxRate').value = s.fxRate;
+      if(s.unitPrice) document.getElementById('unitPrice').value = s.unitPrice;
+    }
+  }catch(e){}
+}
+async function saveSettings(){
+  const s = {
+    fxRate: document.getElementById('fxRate').value,
+    unitPrice: document.getElementById('unitPrice').value
+  };
+  try{ await window.storage.set('invoice-app-settings', JSON.stringify(s), false); }catch(e){}
+}
+
+function render(){
+  const now = cambodiaNow();
+  const invNo = String(state.number).padStart(6,'0');
+  document.getElementById('counterDisplay').textContent = invNo;
+  document.getElementById('invNoOut').textContent = invNo;
+  document.getElementById('counterHint').textContent = `Moves up by one automatically each new day (Cambodia time). Last issued: ${state.lastDate}`;
+
+  const dateStr = fmtDateDMY(now);
+  document.getElementById('dateOut').textContent = dateStr;
+
+  if(!document.getElementById('svcDesc').dataset.touched){
+    const pm = prevMonthYear(now);
+    document.getElementById('svcDesc').value = `General pest control for the month of ${pm.name}, ${pm.year}`;
+  }
+
+  document.getElementById('custCompanyOut').textContent = document.getElementById('custCompany').value;
+  document.getElementById('custKhmerOut').textContent = document.getElementById('custKhmer').value;
+  document.getElementById('custAddressOut').textContent = document.getElementById('custAddress').value;
+
+  const custDigits = document.getElementById('custVattin').value.split('').filter(c=>/[A-Za-z0-9-]/.test(c));
+  fillVattinBox(document.getElementById('custVattinBox'), custDigits);
+
+  const desc = document.getElementById('svcDesc').value;
+  const unit = parseFloat(document.getElementById('unitPrice').value)||0;
+  const vatPct = parseFloat(document.getElementById('vatPct').value)||0;
+  const fx = parseFloat(document.getElementById('fxRate').value)||0;
+
+  const sub = unit;
+  const vat = Math.round(sub*vatPct)/100;
+  const grandUsd = Math.round((sub+vat)*100)/100;
+  const grandKhr = Math.round(grandUsd*fx);
+
+  document.getElementById('descOut').textContent = desc;
+  document.getElementById('unitOut').textContent = unit.toFixed(2)+' $';
+  document.getElementById('amountOut').textContent = unit.toFixed(2)+' $';
+  document.getElementById('subOut').textContent = sub.toFixed(2)+' $';
+  document.getElementById('vatLabelOut').innerHTML = `អាករលើតម្លៃបន្ថែម ${vatPct}% (VAT ${vatPct}%)`;
+  document.getElementById('vatOut').textContent = vat.toFixed(2)+' $';
+  document.getElementById('grandUsdOut').textContent = grandUsd.toFixed(2)+' $';
+  document.getElementById('grandKhrOut').textContent = grandKhr.toLocaleString('en-US')+' ៛';
+}
+
+['custCompany','custKhmer','custVattin','custAddress','custRef','unitPrice','vatPct','fxRate']
+  .forEach(id => document.getElementById(id).addEventListener('input', () => { render(); saveSettings(); }));
+document.getElementById('svcDesc').addEventListener('input', function(){ this.dataset.touched = "1"; render(); });
+
+function showStatus(msg, ok){
+  const box = document.getElementById('statusBox');
+  box.textContent = msg;
+  box.className = 'status ' + (ok ? 'ok' : 'err');
+}
+
+async function invoiceToCanvas(){
+  return await html2canvas(document.getElementById('invoice'), { scale: 2, backgroundColor: '#ffffff' });
+}
+async function invoiceToBlob(){
+  const canvas = await invoiceToCanvas();
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+}
+async function invoiceToPdfBlob(){
+  const canvas = await invoiceToCanvas();
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
+  // Convert canvas pixel size to mm at 96dpi-equivalent for an A4-fitted PDF
+  const pxToMm = px => px * 0.264583;
+  const pageWidthMm = pxToMm(canvas.width / 2);   // /2 to undo the scale:2 factor
+  const pageHeightMm = pxToMm(canvas.height / 2);
+  const pdf = new jsPDF({
+    orientation: pageWidthMm > pageHeightMm ? 'landscape' : 'portrait',
+    unit: 'mm',
+    format: [pageWidthMm, pageHeightMm]
+  });
+  pdf.addImage(imgData, 'PNG', 0, 0, pageWidthMm, pageHeightMm);
+  return pdf.output('blob');
+}
+
+async function downloadImage(triggerBtn, restoreLabel){
+  triggerBtn.disabled = true; triggerBtn.textContent = 'Rendering...';
+  try{
+    const blob = await invoiceToBlob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoice-${document.getElementById('counterDisplay').textContent}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    showStatus('Could not render image: ' + e.message, false);
+  }
+  triggerBtn.disabled = false; triggerBtn.textContent = restoreLabel;
+}
+document.getElementById('downloadBtn').addEventListener('click', (e) => downloadImage(e.target, 'Download as image'));
+document.getElementById('mobileDownloadBtn').addEventListener('click', (e) => downloadImage(e.target, 'Download img'));
+
+async function sendToTelegram(triggerBtn, restoreLabel){
+  if(!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN === "PUT_YOUR_BOT_TOKEN_HERE" ||
+     !TELEGRAM_CHAT_ID || TELEGRAM_CHAT_ID === "PUT_YOUR_CHAT_ID_OR_@CHANNEL"){
+    showStatus('Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in the code first.', false);
+    return;
+  }
+  triggerBtn.disabled = true; triggerBtn.textContent = 'Preparing PDF...';
+  try{
+    const pdfBlob = await invoiceToPdfBlob();
+    const invNo = document.getElementById('counterDisplay').textContent;
+    const dateStr = document.getElementById('dateOut').textContent;
+    const grand = document.getElementById('grandUsdOut').textContent;
+    const caption = `Tax invoice ${invNo}\nDate: ${dateStr}\nCustomer: ${document.getElementById('custCompany').value}\nTotal: ${grand}`;
+
+    const form = new FormData();
+    form.append('chat_id', TELEGRAM_CHAT_ID);
+    form.append('caption', caption);
+    form.append('document', pdfBlob, `invoice-${invNo}.pdf`);
+
+    triggerBtn.textContent = 'Sending...';
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, { method:'POST', body: form });
+    const data = await res.json();
+    if(data.ok){
+      showStatus('Invoice PDF sent to Telegram.', true);
+    } else {
+      showStatus('Telegram error: ' + (data.description || 'unknown error'), false);
+    }
+  }catch(e){
+    showStatus('Could not send: ' + e.message, false);
+  }
+  triggerBtn.disabled = false; triggerBtn.textContent = restoreLabel;
+}
+document.getElementById('sendBtn').addEventListener('click', (e) => sendToTelegram(e.target, 'Send invoice to Telegram (PDF)'));
+document.getElementById('mobileSendBtn').addEventListener('click', (e) => sendToTelegram(e.target, 'Send PDF'));
+
+(async function init(){
+  await loadSettings();
+  await loadCounter();
+})();
+</script>
+</body>
+</html>
